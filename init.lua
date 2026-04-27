@@ -91,7 +91,7 @@ vim.g.mapleader = ' '
 vim.g.maplocalleader = ' '
 
 -- Set to true if you have a Nerd Font installed and selected in the terminal
-vim.g.have_nerd_font = false
+vim.g.have_nerd_font = true
 
 -- [[ Setting options ]]
 -- See `:help vim.opt`
@@ -100,6 +100,11 @@ vim.g.have_nerd_font = false
 
 -- Make line numbers default
 vim.opt.number = true
+vim.opt.relativenumber = true
+vim.opt.autoindent = true
+vim.opt.tabstop = 4
+vim.opt.shiftwidth = 4
+vim.opt.smarttab = true
 -- You can also add relative line numbers, to help with jumping.
 --  Experiment for yourself to see if you like it!
 -- vim.opt.relativenumber = true
@@ -155,7 +160,7 @@ vim.opt.inccommand = 'split'
 vim.opt.cursorline = true
 
 -- Minimal number of screen lines to keep above and below the cursor.
-vim.opt.scrolloff = 10
+vim.opt.scrolloff = 5
 
 -- [[ Basic Keymaps ]]
 --  See `:help vim.keymap.set()`
@@ -185,10 +190,10 @@ vim.keymap.set('t', '<Esc><Esc>', '<C-\\><C-n>', { desc = 'Exit terminal mode' }
 --  Use CTRL+<hjkl> to switch between windows
 --
 --  See `:help wincmd` for a list of all window commands
-vim.keymap.set('n', '<C-h>', '<C-w><C-h>', { desc = 'Move focus to the left window' })
-vim.keymap.set('n', '<C-l>', '<C-w><C-l>', { desc = 'Move focus to the right window' })
-vim.keymap.set('n', '<C-j>', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
-vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
+vim.keymap.set('n', '<C-<left>>', '<C-w><C-h>', { desc = 'Move focus to the left window' })
+vim.keymap.set('n', '<C-<right>>', '<C-w><C-l>', { desc = 'Move focus to the right window' })
+vim.keymap.set('n', '<C-<down>>', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
+vim.keymap.set('n', '<C-<up>>', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
 
 -- [[ Basic Autocommands ]]
 --  See `:help lua-guide-autocommands`
@@ -230,6 +235,7 @@ vim.opt.rtp:prepend(lazypath)
 require('lazy').setup({
   -- NOTE: Plugins can be added with a link (or for a github repo: 'owner/repo' link).
   'tpope/vim-sleuth', -- Detect tabstop and shiftwidth automatically
+  'JuliaEditorSupport/julia-vim',
 
   -- NOTE: Plugins can also be added by using a table,
   -- with the first argument being the link and the following
@@ -615,18 +621,15 @@ require('lazy').setup({
       --  - settings (table): Override the default settings passed when initializing the server.
       --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
       local servers = {
-        -- clangd = {},
-        -- gopls = {},
-        -- pyright = {},
-        -- rust_analyzer = {},
-        -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
-        --
-        -- Some languages (like typescript) have entire language plugins that can be useful:
-        --    https://github.com/pmizio/typescript-tools.nvim
-        --
-        -- But for many setups, the LSP (`ts_ls`) will work just fine
-        -- ts_ls = {},
-        --
+        clangd = {},
+        gopls = {},
+        ruff = {},
+        rust_analyzer = {},
+        julials = {},
+        texlab = {},
+        astro = {},
+        ts_ls = {},
+        tailwindcss = {},
 
         lua_ls = {
           -- cmd = {...},
@@ -790,8 +793,8 @@ require('lazy').setup({
           -- If you prefer more traditional completion keymaps,
           -- you can uncomment the following lines
           --['<CR>'] = cmp.mapping.confirm { select = true },
-          --['<Tab>'] = cmp.mapping.select_next_item(),
-          --['<S-Tab>'] = cmp.mapping.select_prev_item(),
+          ['<Tab>'] = cmp.mapping.select_next_item(),
+          ['<S-Tab>'] = cmp.mapping.select_prev_item(),
 
           -- Manually trigger a completion from nvim-cmp.
           --  Generally you don't need this, because nvim-cmp will display
@@ -833,7 +836,6 @@ require('lazy').setup({
       }
     end,
   },
-
   { -- You can easily change to a different colorscheme.
     -- Change the name of the colorscheme plugin below, and then
     -- change the command in the config to whatever the name of that colorscheme is.
@@ -841,14 +843,18 @@ require('lazy').setup({
     -- If you want to see what colorschemes are already installed, you can use `:Telescope colorscheme`.
     'folke/tokyonight.nvim',
     priority = 1000, -- Make sure to load this before all the other start plugins.
-    init = function()
+    config = function()
+      ---@diagnostic disable-next-line: missing-fields
+      require('tokyonight').setup {
+        styles = {
+          comments = { italic = false }, -- Disable italics in comments
+        },
+      }
+
       -- Load the colorscheme here.
       -- Like many other themes, this one has different styles, and you could load
       -- any other, such as 'tokyonight-storm', 'tokyonight-moon', or 'tokyonight-day'.
       vim.cmd.colorscheme 'tokyonight-night'
-
-      -- You can configure highlights by doing something like:
-      vim.cmd.hi 'Comment gui=none'
     end,
   },
 
@@ -898,8 +904,26 @@ require('lazy').setup({
     main = 'nvim-treesitter.configs', -- Sets main module to use for opts
     -- [[ Configure Treesitter ]] See `:help nvim-treesitter`
     opts = {
-      ensure_installed = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' },
+      ensure_installed = {
+        'bash',
+        'c',
+        'diff',
+        'html',
+        'lua',
+        'luadoc',
+        'markdown',
+        'markdown_inline',
+        'query',
+        'vim',
+        'vimdoc',
+        'latex',
+        'julia',
+        'python',
+        'go',
+      },
       -- Autoinstall languages that are not installed
+      prefer_git = true,
+      sync_install = false,
       auto_install = true,
       highlight = {
         enable = true,
@@ -968,3 +992,80 @@ require('lazy').setup({
 
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
+--
+--
+--
+
+local run_win = nil
+
+vim.keymap.set('n', '<leader>r', function()
+  -- 1. Toggle Logic: Close the window if it exists
+  if run_win and vim.api.nvim_win_is_valid(run_win) then
+    vim.api.nvim_win_close(run_win, true)
+    run_win = nil
+    return
+  end
+
+  -- 2. Save the file
+  vim.cmd 'write'
+
+  -- 3. Define the Command Table
+  -- IMPORTANT: Every line MUST end with a comma (,)
+  local ft = vim.bo.filetype
+  local commands = {
+    python = 'python3 %',
+    julia = 'julia %',
+    go = 'go run %',
+    lua = 'lua %',
+    sh = 'bash %',
+    ps1 = 'pwsh %',
+    rust = 'cargo run', -- Simplified this to avoid syntax errors
+  }
+
+  local cmd = commands[ft]
+  if not cmd then
+    print('No command for: ' .. ft)
+    return
+  end
+
+  -- 4. Open the terminal split
+  vim.cmd('botright split | term ' .. cmd)
+  vim.cmd 'resize 10'
+  run_win = vim.api.nvim_get_current_win()
+
+  -- 5. The 5-second Auto-Close logic
+  local bufnr = vim.api.nvim_get_current_buf()
+  vim.api.nvim_create_autocmd('TermClose', {
+    buffer = bufnr,
+    callback = function()
+      -- If exit code is 0 (Success)
+      if vim.v.shell_error == 0 then
+        vim.defer_fn(function()
+          if run_win and vim.api.nvim_win_is_valid(run_win) then
+            vim.api.nvim_win_close(run_win, true)
+            run_win = nil
+          end
+        end, 5000) -- 5000ms = 5 seconds
+      end
+    end,
+  })
+end, { desc = 'Smart Run' })
+
+-- Auto-populate new Julia files with environment boilerplate
+vim.api.nvim_create_autocmd('BufNewFile', {
+  pattern = '*.jl',
+  callback = function()
+    local lines = {
+      'using Pkg',
+      'Pkg.activate(".")',
+      'Pkg.instantiate()',
+      '',
+      'using ', -- Cursor will land here
+    }
+    -- Insert lines at the start of the buffer
+    vim.api.nvim_buf_set_lines(0, 0, -1, false, lines)
+
+    -- Position cursor at the end of "using " (Line 5, Column 6)
+    vim.api.nvim_win_set_cursor(0, { 5, 6 })
+  end,
+})
